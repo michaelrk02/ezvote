@@ -2,7 +2,7 @@
     <div class="form-group">
         <div class="columns">
             <div class="column col-8 col-sm-12">
-                <select class="form-select" name="candidate_id">
+                <select class="form-select" name="id">
                     <option value="">-- pilih kandidat --</option>
                     <?php foreach ($candidates as $candidate) { ?>
                         <option value="<?php echo $candidate['candidate_id']; ?>" <?php echo ($id === $candidate['candidate_id']) ? 'selected' : ''; ?>><?php echo $candidate['name']; ?> (<?php echo $candidate['candidate_id']; ?>)</option>

@@ -34,7 +34,7 @@ class Sessions_model extends CI_Model {
         return $data;
     }
 
-    public function update($session_id, $data) {
+    public function set($session_id, $data) {
         $this->db->where('session_id', $session_id);
         $this->db->update('sessions', $data);
     }

@@ -112,7 +112,7 @@ class Admin extends CI_Controller {
                                 $data['password'] = password_hash($data['password'], PASSWORD_BCRYPT, ['cost' => 5]);
                             }
 
-                            $this->sessions_model->update($id, $data);
+                            $this->sessions_model->set($id, $data);
                             $this->ezvote->success('Sesi <b>'.$data['title'].'</b> berhasil diperbarui');
                             redirect('admin/session');
                         } else {
@@ -198,7 +198,7 @@ class Admin extends CI_Controller {
             $data['description'] = $this->input->post('description');
 
             $candidate_id = $this->candidates_model->create($data);
-            $this->ezvote->success('Kandidat <b>'.$data['title'].'</b> berhasil ditambahkan (kode: '.$candidate_id.')');
+            $this->ezvote->success('Kandidat <b>'.$data['name'].'</b> berhasil ditambahkan (kode: '.$candidate_id.')');
             redirect('admin/candidate');
         }
 
@@ -231,14 +231,14 @@ class Admin extends CI_Controller {
         if (!empty($action)) {
             if ($action === 'edit') {
                 if (!empty($this->input->post('submit'))) {
-                    if ($this->candidate_editor_validate(FALSE)) 
+                    if ($this->candidate_editor_validate(FALSE)) {
                         if ($this->candidates_model->exists($id)) {
                             $data = [];
                             $data['session_id'] = $this->input->post('session_id');
-                            $data['name'] = $this->input->post('title');
+                            $data['name'] = $this->input->post('name');
                             $data['description'] = $this->input->post('description');
 
-                            $this->sessions_model->update($id, $data);
+                            $this->candidates_model->set($id, $data);
                             $this->ezvote->success('Kandidat <b>'.$data['name'].'</b> berhasil diperbarui');
                             redirect('admin/candidate');
                         } else {
@@ -275,24 +275,27 @@ class Admin extends CI_Controller {
         if (!empty($id)) {
             $candidate = $this->candidates_model->get($id, 'session_id,name,description');
             if (isset($candidate)) {
+                $this->load->model('sessions_model');
+
                 $form = [];
                 $form['candidate_id'] = $id;
                 $form['session_id'] = $candidate['session_id'];
-                $form['name'] = set_value('name', $candidate['title']);
+                $form['name'] = set_value('name', $candidate['name']);
                 $form['description'] = set_value('description', $candidate['description']);
 
+                $data['sessions'] = $this->sessions_model->get(NULL, 'session_id,title');
                 $data['status'] = '';
                 $data['create'] = FALSE;
                 $data['data'] = $form;
 
-                $this->load->view('admin/session_editor', $data);
+                $this->load->view('admin/candidate_editor', $data);
             }
         }
         $this->load->view('footer');
     }
 
     private function candidate_editor_validate($create) {
-        $this->load->helper('from');
+        $this->load->helper('form');
         $this->load->library('form_validation');
 
         $this->form_validation->set_rules('session_id', 'session', 'required');

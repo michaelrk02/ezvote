@@ -15,6 +15,7 @@ class Candidates_model extends CI_Model {
         } while ($this->exists($data['candidate_id']));
 
         $this->db->insert('candidates', $data);
+        return $data['candidate_id'];
     }
 
     public function get($candidate_id = NULL, $columns = '*', $params = NULL) {
@@ -47,7 +48,7 @@ class Candidates_model extends CI_Model {
     }
 
     public function exists($candidate_id) {
-        $this->load->helper();
+        return $this->db->select('candidate_id')->from('candidates')->count_all_results() != 0;
     }
 
 }

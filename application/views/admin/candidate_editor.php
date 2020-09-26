@@ -9,13 +9,13 @@
         <select class="form-select" name="session_id">
             <option value="">-- pilih sesi --</option>
             <?php foreach ($sessions as $session) { ?>
-                <option value="<?php echo $session['session_id']; ?>"><?php echo $session['title']; ?></option>
+                <option value="<?php echo $session['session_id']; ?>" <?php echo $create ? '' : ($data['session_id'] === $session['session_id'] ? 'selected' : ''); ?>><?php echo $session['title']; ?></option>
             <?php } ?>
         </select>
     </div>
     <div class="form-group">
         <label class="form-label">Nama: <span class="text-error">*</span></label>
-        <input type="text" class="form-input" name="title" value="<?php echo htmlspecialchars($data['name']); ?>" placeholder="Masukkan nama kandidat ...">
+        <input type="text" class="form-input" name="name" value="<?php echo htmlspecialchars($data['name']); ?>" placeholder="Masukkan nama kandidat ...">
     </div>
     <div class="form-group">
         <label class="form-label">Deskripsi:</label>
