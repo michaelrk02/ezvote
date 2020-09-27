@@ -34,3 +34,21 @@
     </form>
 </div>
 
+<script>
+
+window.addEventListener('load', function() {
+    new Vue({
+        el: '#editor',
+        data: {
+            passwordVisible: false
+        },
+        methods: {
+            togglePassword: function(e) {
+                this.passwordVisible = e.target.checked;
+            }
+        }
+    });
+});
+
+</script>
+
