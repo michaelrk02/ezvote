@@ -2,6 +2,8 @@
 
 class Candidates_model extends CI_Model {
 
+    public $display_items = 15;
+
     public function __construct() {
         $this->load->database();
     }
@@ -27,6 +29,29 @@ class Candidates_model extends CI_Model {
             $this->db->where('candidate_id', $candidate_id);
             return $this->db->get()->row_array(0);
         }
+        $this->db->order_by('name');
+        $data = $this->db->get()->result_array();
+        if (!isset($data)) {
+            $data = [];
+        }
+        return $data;
+    }
+
+    public function search($page = 1, $filter = '') {
+        if ($page < 1) {
+            show_error('Kesalahan parameter', 400);
+        }
+
+        $this->db->select('candidate_id,name,description')->from('candidates');
+        $count = $this->db->count_all_results('', FALSE);
+        $max_page = ceil($count / $this->display_items);
+        if ($page > $max_page) {
+            show_error('Kesalahan parameter', 400);
+        }
+
+        $this->db->like('name', $filter);
+        $this->db->limit($this->display_items, ($page - 1) * $this->display_items);
+
         $data = $this->db->get()->result_array();
         if (!isset($data)) {
             $data = [];
@@ -48,7 +73,7 @@ class Candidates_model extends CI_Model {
     }
 
     public function exists($candidate_id) {
-        return $this->db->select('candidate_id')->from('candidates')->count_all_results() != 0;
+        return $this->db->select('candidate_id')->from('candidates')->where('candidate_id', $candidate_id)->count_all_results() != 0;
     }
 
 }

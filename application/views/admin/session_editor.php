@@ -22,9 +22,18 @@
             <textarea class="form-input" name="description" rows="5" style="resize: none" placeholder="Masukkan deskripsi ..."><?php echo htmlspecialchars($data['description']); ?></textarea>
         </div>
         <div class="form-group">
+            <label class="form-label">Jumlah Peserta:</label>
+            <input type="number" class="form-input" name="participants" min="0" step="1" value="<?php echo htmlspecialchars($data['participants']); ?>">
+        </div>
+        <div class="form-group">
             <label class="form-label">Tagline:</label>
             <input type="text" class="form-input" name="tagline" value="<?php echo htmlspecialchars($data['tagline']); ?>" placeholder="Masukkan tagline ...">
         </div>
+        <?php if (!$create) { ?>
+            <div class="form-group">
+                <div>Live Count: <a target="_blank" href="<?php echo site_url('admin/live_count').'?session='.$data['session_id']; ?>">lihat</a></div>
+            </div>
+        <?php } ?>
         <div class="form-group">
             <button type="submit" class="btn btn-success" name="submit" value="1">KIRIM</button>
             <?php if (!$create) { ?>

@@ -12,25 +12,31 @@ class Tokens_model extends CI_Model {
         $tokenset_exists = $this->db->select('token')->from('tokens')->where('tokenset_id', $tokenset_id)->count_all_results() != 0;
         if (!$tokenset_exists) {
             for ($i = 1; $i <= $count; $i++) {
-                $num = $i % $count;
-
-                $prefix = sprintf('%s-%04d', $tokenset_id, $num);
-
-                $data = [];
-                $data['token'] = NULL;
-                do {
-                    $data['token'] = sprintf('%s-%s', $prefix, random_string('alnum', 8));
-                } while ($this->exists($data['token']));
-
-                $data['tokenset_id'] = $tokenset_id;
-                $data['used'] = 0;
-                $data['candidate_id'] = NULL;
-
-                $this->db->insert('tokens', $data);
+                $num = $i % 10000;
+                $this->create($tokenset_id, $num);
             }
             return TRUE;
         }
         return FALSE;
+    }
+
+    public function create($tokenset_id, $num = NULL) {
+        if (!isset($num)) {
+            $num = mt_rand(0, 9999);
+        }
+
+        $prefix = sprintf('%s-%04d', $tokenset_id, $num);
+
+        $data = [];
+        $data['token'] = NULL;
+        do {
+            $data['token'] = sprintf('%s-%s', $prefix, random_string('alnum', 8));
+        } while ($this->exists($data['token']));
+
+        $data['tokenset_id'] = $tokenset_id;
+        $data['candidate_id'] = NULL;
+
+        $this->db->insert('tokens', $data);
     }
 
     public function get($token = NULL, $columns = '*', $params = NULL) {
@@ -58,7 +64,7 @@ class Tokens_model extends CI_Model {
     public function delete($tokenset_id) {
         $this->db->where('tokenset_id', $tokenset_id);
         $this->db->delete('tokens');
-    }
+    }   
 
     public function exists($token) {
         return $this->db->select('token')->from('tokens')->where('token', $token)->count_all_results() != 0;

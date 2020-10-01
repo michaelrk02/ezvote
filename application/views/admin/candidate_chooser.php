@@ -5,7 +5,7 @@
                 <select class="form-select" name="id">
                     <option value="">-- pilih kandidat --</option>
                     <?php foreach ($candidates as $candidate) { ?>
-                        <option value="<?php echo $candidate['candidate_id']; ?>" <?php echo ($id === $candidate['candidate_id']) ? 'selected' : ''; ?>><?php echo $candidate['name']; ?> (<?php echo $candidate['candidate_id']; ?>)</option>
+                        <option value="<?php echo $candidate['candidate_id']; ?>" <?php echo ($id === $candidate['candidate_id']) ? 'selected' : ''; ?>><?php echo $candidate['session_title']; ?> - <?php echo $candidate['name']; ?> (<?php echo $candidate['candidate_id']; ?>)</option>
                     <?php } ?>
                 </select>
             </div>

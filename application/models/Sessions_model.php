@@ -27,6 +27,7 @@ class Sessions_model extends CI_Model {
             $this->db->where('session_id', $session_id);
             return $this->db->get()->row_array(0);
         }
+        $this->db->order_by('title');
         $data = $this->db->get()->result_array();
         if (!isset($data)) {
             $data = [];
@@ -40,14 +41,16 @@ class Sessions_model extends CI_Model {
     }
 
     public function delete($session_id) {
-        $this->load->model('tokensets_model');
-        $tokensets = $this->tokensets_model->get(NULL, 'tokenset_id', ['session_id' => $session_id]);
-        foreach ($tokensets as $tokenset) {
-            $this->tokensets_model->delete($tokenset['tokenset_id']);
-        }
+        $candidates_exist = $this->db->select('candidate_id')->from('candidates')->where('session_id', $session_id)->count_all_results() != 0;
+        $tokensets_exist = $this->db->select('tokenset_id')->from('tokensets')->where('session_id', $session_id)->count_all_results() != 0;
 
-        $this->db->where('session_id', $session_id);
-        $this->db->delete('sessions');
+        if (!$candidates_exist && !$tokensets_exist) {
+            $this->db->where('session_id', $session_id);
+            $this->db->delete('sessions');
+
+            return TRUE;
+        }
+        return FALSE;
     }
 
     public function exists($session_id) {

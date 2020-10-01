@@ -6,8 +6,9 @@ class Tokensets_model extends CI_Model {
         $this->load->database();
     }
 
-    public function create($data) {
-        $this->load->helper('text');
+    public function create($data, $count) {
+        $this->load->helper('string');
+        $this->load->model('tokens_model');
 
         $data['tokenset_id'] = NULL;
         do {
@@ -15,6 +16,8 @@ class Tokensets_model extends CI_Model {
         } while ($this->exists($data['tokenset_id']));
 
         $this->db->insert('tokensets', $data);
+        $this->tokens_model->generate($data['tokenset_id'], $count);
+
         return $data['tokenset_id'];
     }
 
@@ -27,7 +30,7 @@ class Tokensets_model extends CI_Model {
             $this->db->where('tokenset_id', $tokenset_id);
             return $this->db->get()->row_array(0);
         }
-
+        $this->db->order_by('name');
         $data = $this->db->get()->result_array();
         if (!isset($data)) {
             $data = [];
