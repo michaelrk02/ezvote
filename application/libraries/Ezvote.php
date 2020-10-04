@@ -33,6 +33,10 @@ class Ezvote {
         return '<div></div>';
     }
 
+    public function image_path($image_id) {
+        return APPPATH.'third_party/data/img_'.md5($image_id).'.png';
+    }
+
 }
 
 ?>

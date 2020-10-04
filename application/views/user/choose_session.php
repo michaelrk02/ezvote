@@ -7,7 +7,7 @@
         <p class="empty-subtitle">Silakan untuk memilih sesi pemungutan suara kemudian klik tombol <b>LANJUT</b></p>
         <div class="empty-action">
             <?php echo form_open('user/choose_session'); ?>
-                <div class="input-group">
+                <div class="input-group" style="margin-bottom: 1rem">
                     <select class="form-select" name="session_id">
                         <option value="">-- pilih sesi --</option>
                         <?php foreach ($sessions as $session) { ?>
@@ -16,10 +16,13 @@
                     </select>
                     <button type="submit" class="btn btn-success input-group-btn" name="submit" value="1">LANJUT &raquo;</button>
                 </div>
-                <label class="form-checkbox text-left">
+                <!-- <label class="form-checkbox text-left">
                     <input type="checkbox" name="automatic" value="1">
                     <i class="form-icon"></i> Pilih token otomatis <b>(hanya panitia)</b>
-                </label>
+                </label> --> <!-- FIXME: THIS FEATURE ISN'T AVAILABLE FOR NOW -->
+                <div>
+                    <?php echo $status; ?>
+                </div>
             </form>
         </div>
     </div>

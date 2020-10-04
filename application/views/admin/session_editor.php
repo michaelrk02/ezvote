@@ -29,6 +29,12 @@
             <label class="form-label">Tagline:</label>
             <input type="text" class="form-input" name="tagline" value="<?php echo htmlspecialchars($data['tagline']); ?>" placeholder="Masukkan tagline ...">
         </div>
+        <div class="form-group">
+            <label class="form-checkbox">
+                <input type="checkbox" name="locked" value="1" <?php echo $data['locked'] ? 'checked' : ''; ?>>
+                <i class="form-icon"></i> Terkunci
+            </label>
+        </div>
         <?php if (!$create) { ?>
             <div class="form-group">
                 <div>Live Count: <a target="_blank" href="<?php echo site_url('admin/live_count').'?session='.$data['session_id']; ?>">lihat</a></div>

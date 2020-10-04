@@ -26,8 +26,12 @@ window.candidates = {};
             <div class="column col-4 col-sm-12 col-ml-auto col-mr-auto" style="margin-bottom: 1rem">
                 <div class="card" id="__candidate_<?php echo $candidate['candidate_id']; ?>" style="height: 100%">
                     <div class="card-image">
-                        <div class="empty">
+                        <div class="empty" v-if="!imgLoaded">
                             <div class="empty-icon"><i class="icon icon-4x" v-bind:class="[chosen ? 'icon-check text-success' : 'icon-people']"></i></div>
+                        </div>
+                        <div style="position: relative; text-align: center" v-bind:class="[imgLoaded ? '' : 'd-none']">
+                            <img src="<?php echo site_url('content/data_img/candidate_'.$candidate['candidate_id']); ?>" width="100%" v-on:load="imgLoaded = true" v-bind:style="chosen ? {filter: 'opacity(30%)'} : {}">
+                            <i v-if="chosen" class="icon icon-4x icon-check text-success" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%)"></i>
                         </div>
                     </div>
                     <div class="card-header">
@@ -47,6 +51,7 @@ window.candidates = {};
                     window.candidates[<?php echo '\''.$candidate['candidate_id'].'\''; ?>] = new Vue({
                         el: <?php echo '\'#__candidate_'.$candidate['candidate_id'].'\''; ?>,
                         data: {
+                            imgLoaded: false,
                             chosen: false,
                             name: <?php echo '\''.$candidate['name'].'\''; ?>,
                             candidateID: <?php echo '\''.$candidate['candidate_id'].'\''; ?>,

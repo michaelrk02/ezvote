@@ -67,6 +67,7 @@ class Admin extends CI_Controller {
             $data['description'] = $this->input->post('description');
             $data['participants'] = $this->input->post('participants');
             $data['tagline'] = $this->input->post('tagline');
+            $data['locked'] = !empty($this->input->post('locked'));
 
             $session_id = $this->sessions_model->create($data);
             $this->ezvote->success('Sesi <b>'.$data['title'].'</b> berhasil dibuat (kode: '.$session_id.')');
@@ -79,6 +80,7 @@ class Admin extends CI_Controller {
         $form['password'] = set_value('password');
         $form['description'] = set_value('description');
         $form['tagline'] = set_value('tagline');
+        $form['locked'] = set_value('locked');
 
         $data = [];
         $data['create'] = TRUE;
@@ -110,6 +112,7 @@ class Admin extends CI_Controller {
                             $data['description'] = $this->input->post('description');
                             $data['participants'] = $this->input->post('participants');
                             $data['tagline'] = $this->input->post('tagline');
+                            $data['locked'] = !empty($this->input->post('locked'));
 
                             if (!empty($this->input->post('password'))) {
                                 $data['password'] = $this->input->post('password');
@@ -147,7 +150,7 @@ class Admin extends CI_Controller {
         $this->load->view('admin/session', ['status' => $this->ezvote->status()]);
         $this->load->view('admin/session_chooser', ['id' => $id, 'sessions' => $sessions]);
         if (!empty($id)) {
-            $session = $this->sessions_model->get($id, 'title,description,participants,tagline');
+            $session = $this->sessions_model->get($id, 'title,description,participants,tagline,locked');
             if (isset($session)) {
                 $form = [];
                 $form['session_id'] = $id;
@@ -155,6 +158,7 @@ class Admin extends CI_Controller {
                 $form['description'] = set_value('description', $session['description']);
                 $form['participants'] = set_value('participants', $session['participants']);
                 $form['tagline'] = set_value('tagline', $session['tagline']);
+                $form['locked'] = set_value('locked', $session['locked']);
 
                 $data['status'] = '';
                 $data['create'] = FALSE;
@@ -205,7 +209,9 @@ class Admin extends CI_Controller {
             $data['description'] = $this->input->post('description');
 
             $candidate_id = $this->candidates_model->create($data);
-            $this->ezvote->success('Kandidat <b>'.$data['name'].'</b> berhasil ditambahkan (kode: '.$candidate_id.')');
+            if ($this->candidate_upload_photo($candidate_id)) {
+                $this->ezvote->success('Kandidat <b>'.$data['name'].'</b> berhasil ditambahkan (kode: '.$candidate_id.')');
+            }
             redirect('admin/candidate');
         }
 
@@ -248,7 +254,9 @@ class Admin extends CI_Controller {
                             $data['description'] = $this->input->post('description');
 
                             $this->candidates_model->set($id, $data);
-                            $this->ezvote->success('Kandidat <b>'.$data['name'].'</b> berhasil diperbarui');
+                            if ($this->candidate_upload_photo($id)) {
+                                $this->ezvote->success('Kandidat <b>'.$data['name'].'</b> berhasil diperbarui');
+                            }
                             redirect('admin/candidate');
                         } else {
                             $this->ezvote->error('Kandidat tidak ditemukan');
@@ -261,8 +269,18 @@ class Admin extends CI_Controller {
                 if ($this->candidates_model->exists($id)) {
                     $this->candidates_model->delete($id);
                     $this->ezvote->success('Kandidat berhasil dihapus');
+                    redirect('admin/candidate');
                 } else {
                     $this->ezvote->error('Kandidat tidak ditemukan');
+                    redirect('admin/candidate');
+                }
+            }
+            if ($action === 'deletephoto') {
+                if (!empty($id)) {
+                    if (file_exists($this->ezvote->image_path('candidate_'.$id))) {
+                        unlink($this->ezvote->image_path('candidate_'.$id));
+                    }
+                    $this->ezvote->success('Foto kandidat berhasil dihapus');
                     redirect('admin/candidate');
                 }
             }
@@ -296,6 +314,7 @@ class Admin extends CI_Controller {
                 $data['status'] = '';
                 $data['create'] = FALSE;
                 $data['data'] = $form;
+                $data['photo_url'] = $this->candidate_photo_url($id);
 
                 $this->load->view('admin/candidate_editor', $data);
             }
@@ -318,6 +337,80 @@ class Admin extends CI_Controller {
             $this->ezvote->error(validation_errors());
         }
         return FALSE;
+    }
+
+    private function candidate_upload_photo($candidate_id) {
+        $success = TRUE;
+        if ($_FILES['photo']['size'] != 0) {
+            $success = FALSE;
+
+            $tmp_image_id = 'candidate_'.$candidate_id.'_tmp';
+            $tmp_path = $this->ezvote->image_path($tmp_image_id);
+
+            $this->load->library('upload', [
+                'upload_path' => dirname($tmp_path),
+                'allowed_types' => 'jpeg|jpg|png',
+                'file_name' => basename($tmp_path, '.png'),
+                'file_ext_tolower' => TRUE,
+                'overwrite' => TRUE
+            ]);
+
+            if ($this->upload->do_upload('photo')) {
+                $tmp_path = $this->upload->data('full_path');
+
+                $image_id = 'candidate_'.$candidate_id;
+                $path = $this->ezvote->image_path($image_id);
+
+                $img = NULL;
+                $mime = mime_content_type($this->upload->data('full_path'));
+                if (($mime === 'image/jpg') || ($mime === 'image/jpeg')) {
+                    $img = imagecreatefromjpeg($tmp_path);
+                } else if ($mime === 'image/png') {
+                    $img = imagecreatefrompng($tmp_path);
+                }
+                if ($img !== FALSE) {
+                    $target = imagecreatetruecolor(512, 512);
+                    imagefill($target, 0, 0, imagecolorallocate($target, 0, 0, 0));
+
+                    $src_x = 0;
+                    $src_y = 0;
+                    $src_w = imagesx($img);
+                    $src_h = imagesy($img);
+
+                    $factor = 1.0;
+                    if ($src_w > $src_h) {
+                        $factor = 512.0 / $src_w;
+                    } else if ($src_w < $src_h) {
+                        $factor = 512.0 / $src_h;
+                    }
+
+                    $dst_w = $factor * $src_w;
+                    $dst_h = $factor * $src_h;
+                    $dst_x = 256 - ($dst_w / 2);
+                    $dst_y = 256 - ($dst_h / 2);
+
+                    imagecopyresized($target, $img, $dst_x, $dst_y, $src_x, $src_y, $dst_w, $dst_h, $src_w, $src_h);
+                    imagepng($target, $path);
+                    imagedestroy($target);
+                    imagedestroy($img);
+
+                    $success = TRUE;
+                } else {
+                    $this->ezvote->error('Gagal dalam memproses foto kandidat');
+                }
+                unlink($tmp_path);
+            } else {
+                $this->ezvote->error('Tidak dapat mengunggah file: '.$this->upload->display_errors().'. Mohon coba lagi');
+            }
+        }
+        return $success;
+    }
+
+    private function candidate_photo_url($id) {
+        if (file_exists($this->ezvote->image_path('candidate_'.$id))) {
+            return site_url('content/data_img/candidate_'.$id);
+        }
+        return NULL;
     }
 
     public function tokenset_create() {
@@ -554,48 +647,22 @@ class Admin extends CI_Controller {
         $this->load->model(['sessions_model', 'tokensets_model']);
 
         $session_id = $this->input->get('session');
+        $dramatic = !empty($this->input->get('dramatic'));
 
         $data = [];
+        $data['dramatic'] = $dramatic;
 
         $sessions = $this->sessions_model->get(NULL, 'session_id,title');
 
         $this->load->view('header', ['title' => 'Sesi']);
         $this->load->view('admin/navbar');
-        $this->load->view('admin/result_chooser', ['session_id' => $session_id, 'sessions' => $sessions]);
-        if (!empty($session_id)) {
+        $this->load->view('admin/result_chooser', ['session_id' => $session_id, 'sessions' => $sessions, 'dramatic' => $dramatic]);
+        if (!empty($session_id) && $this->sessions_model->exists($session_id)) {
             $this->load->database();
             $this->load->model('candidates_model');
 
-            $raw_data = $this->db->query('SELECT candidate_id FROM tokens WHERE candidate_id IS NOT NULL')->result_array();
-            if (!isset($raw_data)) {
-                $raw_data = [];
-            }
-            $voters_map = [];
-            foreach ($raw_data as $entry) {
-                $id = $entry['candidate_id'];
-                if (!isset($voters_map[$id])) {
-                    $voters_map[$id] = 0;
-                }
-                $voters_map[$id]++;
-            }
-
-            $winner = NULL;
-            foreach ($voters_map as $id => $voters) {
-                if (isset($winner)) {
-                    if ($voters > $voters_map[$winner]) {
-                        $winner = $id;
-                    }
-                } else {
-                    $winner = $id;
-                }
-            }
-
-            $data['winner'] = $this->candidates_model->get($winner, 'name')['name'];
-            $data['voters'] = $voters_map[$winner];
-
-            $categories = $this->tokensets_model->get(NULL, 'tokenset_id,name');
-            foreach ($categories as &$category) {
-                $raw_data = $this->db->query('SELECT candidate_id FROM tokens WHERE candidate_id IS NOT NULL AND tokenset_id = ?', [$category['tokenset_id']])->result_array();
+            if (!$dramatic) {
+                $raw_data = $this->db->query('SELECT candidate_id FROM tokens WHERE candidate_id IS NOT NULL')->result_array();
                 if (!isset($raw_data)) {
                     $raw_data = [];
                 }
@@ -607,24 +674,65 @@ class Admin extends CI_Controller {
                     }
                     $voters_map[$id]++;
                 }
-                $category['winner'] = NULL;
-                $category['voters'] = 0;
+
+                $winner = NULL;
                 foreach ($voters_map as $id => $voters) {
-                    if (isset($category['winner'])) {
-                        if ($voters > $voters_map[$category['winner']]) {
-                            $category['winner'] = $id;
+                    if (isset($winner)) {
+                        if ($voters > $voters_map[$winner]) {
+                            $winner = $id;
                         }
                     } else {
-                        $category['winner'] = $id;
+                        $winner = $id;
                     }
                 }
-                if (isset($category['winner'])) {
-                    $category['voters'] = $voters_map[$category['winner']];
-                    $category['winner'] = $this->candidates_model->get($category['winner'], 'name')['name'];
-                }
-            }
 
-            $data['categories'] = $categories;
+                $data['winner'] = $this->candidates_model->get($winner, 'name')['name'];
+                $data['voters'] = $voters_map[$winner];
+
+                $categories = $this->tokensets_model->get(NULL, 'tokenset_id,name');
+                foreach ($categories as &$category) {
+                    $raw_data = $this->db->query('SELECT candidate_id FROM tokens WHERE candidate_id IS NOT NULL AND tokenset_id = ?', [$category['tokenset_id']])->result_array();
+                    if (!isset($raw_data)) {
+                        $raw_data = [];
+                    }
+                    $voters_map = [];
+                    foreach ($raw_data as $entry) {
+                        $id = $entry['candidate_id'];
+                        if (!isset($voters_map[$id])) {
+                            $voters_map[$id] = 0;
+                        }
+                        $voters_map[$id]++;
+                    }
+                    $category['winner'] = NULL;
+                    $category['voters'] = 0;
+                    foreach ($voters_map as $id => $voters) {
+                        if (isset($category['winner'])) {
+                            if ($voters > $voters_map[$category['winner']]) {
+                                $category['winner'] = $id;
+                            }
+                        } else {
+                            $category['winner'] = $id;
+                        }
+                    }
+                    if (isset($category['winner'])) {
+                        $category['voters'] = $voters_map[$category['winner']];
+                        $category['winner'] = $this->candidates_model->get($category['winner'], 'name')['name'];
+                    }
+                }
+
+                $data['categories'] = $categories;
+            } else {
+                $candidates = $this->candidates_model->get(NULL, 'candidate_id,name', ['session_id' => $session_id]);
+                if (!((count($candidates) == 1) || (count($candidates) > 3))) {
+                    foreach ($candidates as &$candidate) {
+                        $candidate['voters'] = $this->db->select('token')->from('tokens')->where('candidate_id', $candidate['candidate_id'])->count_all_results();
+                    }
+                } else {
+                    $this->ezvote->error('Jumlah kandidat pada sesi tersebut kurang dari 2 atau lebih dari 3');
+                    redirect('admin/result');
+                }
+                $data['candidates'] = $candidates;
+            }
             $data['status'] = $this->ezvote->status();
 
             $this->load->view('admin/result', $data);

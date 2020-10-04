@@ -51,6 +51,7 @@ class Candidates_model extends CI_Model {
 
         $this->db->like('name', $filter);
         $this->db->limit($this->display_items, ($page - 1) * $this->display_items);
+        $this->db->order_by('name');
 
         $data = $this->db->get()->result_array();
         if (!isset($data)) {
@@ -70,6 +71,10 @@ class Candidates_model extends CI_Model {
 
         $this->db->where('candidate_id', $candidate_id);
         $this->db->delete('candidates');
+
+        if (file_exists($this->ezvote->image_path('candidate_'.$candidate_id))) {
+            unlink($this->ezvote->image_path('candidate_'.$candidate_id));
+        }
     }
 
     public function exists($candidate_id) {

@@ -115,8 +115,14 @@ class User extends CI_Controller {
             if ($this->candidates_model->exists($candidate_id)) {
                 $this->load->model('tokens_model');
 
-                $this->tokens_model->set($_SESSION['ezvote_user_token'], ['candidate_id' => $candidate_id]);
-                redirect('user/token_logout');
+                if ($this->tokens_model->exists($_SESSION['ezvote_user_token'])) {
+                    $this->tokens_model->set($_SESSION['ezvote_user_token'], ['candidate_id' => $candidate_id]);
+                    redirect('user/token_logout');
+                } else {
+                    $this->ezvote->error('Token tidak ditemukan');
+                    unset($_SESSION['ezvote_user_token']);
+                    redirect('user/token');
+                }
             } else {
                 $this->ezvote->error('Kandidat tidak ditemukan');
             }
@@ -178,6 +184,23 @@ class User extends CI_Controller {
 
     private function session_check() {
         if (empty($_SESSION['ezvote_user_session'])) {
+            redirect('user/choose_session');
+        }
+        $this->load->model('sessions_model');
+        $session = $this->sessions_model->get($_SESSION['ezvote_user_session'], 'locked');
+        $fail = FALSE;
+        if (isset($session)) {
+            if (!empty($session['locked'])) {
+                $fail = TRUE;
+                $this->ezvote->error('Sesi terkunci');
+            }
+        } else {
+            $fail = TRUE;
+            $this->ezvote->error('Sesi tidak ditemukan. Silakan login kembali');
+        }
+        if ($fail) {
+            unset($_SESSION['ezvote_user_session']);
+            unset($_SESSION['ezvote_user_token']);
             redirect('user/choose_session');
         }
     }
